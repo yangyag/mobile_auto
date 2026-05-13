@@ -91,4 +91,25 @@ describe('apiFetch', () => {
     fetchMock.mockRejectedValueOnce(new Error('network down'));
     await expect(apiFetch('/v1/bot/status')).rejects.toMatchObject({ code: 'network' });
   });
+
+  it('401 시 다른 요청이 이미 refresh했으면 재refresh 없이 재시도', async () => {
+    await AuthStore.setTokens({ access: 'a1', refresh: 'r1' });
+
+    // 첫 fetch 시점에 누군가 이미 refresh를 끝낸 상태 시뮬레이션
+    fetchMock.mockImplementationOnce(async () => {
+      await AuthStore.setTokens({ access: 'a2', refresh: 'r2' });
+      return new Response('', { status: 401 });
+    });
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const res = await apiFetch('/v1/bot/status');
+    expect(res.status).toBe(200);
+    expect(refreshApi).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer a2' }),
+      }),
+    );
+  });
 });

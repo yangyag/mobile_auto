@@ -63,15 +63,19 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
 
   if (res.status !== 401) return res;
 
-  // 401 → refresh once
-  await AuthStore.clearAccessToken();
+  // 401: 다른 요청이 이미 refresh했으면 캐시 토큰 재사용, 아니면 강제 refresh
+  const currentCached = AuthStore.getAccessToken();
   let newToken: string;
-  try {
-    newToken = await ensureFreshAccess(true);
-  } catch {
-    await AuthStore.clearAll();
-    AuthEvents.emit('logout');
-    throw new ApiError('session expired', 401, 'session-expired');
+  if (currentCached && currentCached !== token) {
+    newToken = currentCached;
+  } else {
+    try {
+      newToken = await ensureFreshAccess(true);
+    } catch {
+      await AuthStore.clearAll();
+      AuthEvents.emit('logout');
+      throw new ApiError('session expired', 401, 'session-expired');
+    }
   }
 
   try {
@@ -94,12 +98,20 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
 export async function apiGetJson<T>(path: string): Promise<T> {
   const res = await apiFetch(path);
   const text = await res.text();
-  const parsed = text ? (JSON.parse(text) as T) : (undefined as T);
+  let parsed: unknown;
+  if (text) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = text;
+    }
+  }
   if (!res.ok) {
     const code = res.status >= 500 ? 'server' : 'client';
-    throw new ApiError((parsed as any)?.detail ?? `HTTP ${res.status}`, res.status, code, parsed);
+    const detail = (parsed as { detail?: string } | undefined)?.detail;
+    throw new ApiError(detail ?? `HTTP ${res.status}`, res.status, code, parsed);
   }
-  return parsed;
+  return parsed as T;
 }
 
 export function __resetClientForTest() {
