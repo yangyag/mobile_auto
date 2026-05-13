@@ -35,6 +35,48 @@ describe('formatSigned', () => {
   });
 });
 
+describe('formatKrw - string inputs (Decimal from API)', () => {
+  it('소수점 포함 문자열', () => {
+    expect(formatKrw('126340000.00000000')).toBe('126,340,000');
+  });
+  it('과학적 표기 0', () => {
+    expect(formatKrw('0E-16')).toBe('0');
+  });
+  it('잘못된 문자열은 빈 문자열', () => {
+    expect(formatKrw('abc')).toBe('');
+  });
+  it('정수 문자열', () => {
+    expect(formatKrw('12400')).toBe('12,400');
+  });
+});
+
+describe('formatBtc - string inputs', () => {
+  it('과학적 표기 0', () => {
+    expect(formatBtc('0E-16')).toBe('0.00000000');
+  });
+  it('소수점 문자열', () => {
+    expect(formatBtc('0.0004728800000000')).toBe('0.00047288');
+  });
+  it('잘못된 문자열은 빈 문자열', () => {
+    expect(formatBtc('abc')).toBe('');
+  });
+});
+
+describe('formatSigned - string inputs', () => {
+  it('양수 문자열', () => {
+    expect(formatSigned('12400.5')).toBe('+12,400');
+  });
+  it('음수 문자열', () => {
+    expect(formatSigned('-12400.5')).toBe('-12,400');
+  });
+  it('0 문자열', () => {
+    expect(formatSigned('0')).toBe('0');
+  });
+  it('과학적 표기 0', () => {
+    expect(formatSigned('0E-24')).toBe('0');
+  });
+});
+
 describe('formatRelativeTime', () => {
   it('초 단위', () => {
     const now = new Date('2026-05-13T10:00:00Z').getTime();
