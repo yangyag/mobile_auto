@@ -17,11 +17,8 @@ function Gate() {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-      {state.status === 'authenticated' ? (
-        <Stack.Screen name="(tabs)" />
-      ) : (
-        <Stack.Screen name="login" />
-      )}
+      <Stack.Screen name="login" />
+      <Stack.Screen name="(tabs)" />
     </Stack>
   );
 }
