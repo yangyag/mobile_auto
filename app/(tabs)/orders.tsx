@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, RefreshControl, SectionList } from 'react-native';
+import { View, Text, StyleSheet, RefreshControl, SectionList } from 'react-native';
 import { useAutoRefresh } from '../../src/hooks/useAutoRefresh';
 import { getPendingOrders, getRecentOrders } from '../../src/api/endpoints';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
@@ -11,7 +11,7 @@ export default function OrdersScreen() {
   const pending = useAutoRefresh(getPendingOrders, 10_000);
   const recent = useAutoRefresh(useCallback(() => getRecentOrders(50), []), 30_000);
 
-  const refreshing = (pending.loading && !pending.data) || (recent.loading && !recent.data);
+  const refreshing = pending.refreshing || recent.refreshing;
   const refreshAll = useCallback(() => { pending.refresh(); recent.refresh(); }, [pending, recent]);
 
   const sections = [
@@ -26,7 +26,7 @@ export default function OrdersScreen() {
       ) : null}
       <SectionList
         sections={sections}
-        keyExtractor={(item) => item.uuid}
+        keyExtractor={(item, index) => `${item.uuid}:${index}`}
         renderSectionHeader={({ section }) => (
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}

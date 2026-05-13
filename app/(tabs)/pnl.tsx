@@ -23,7 +23,7 @@ export default function PnlScreen() {
   return (
     <ScrollView
       style={styles.root}
-      refreshControl={<RefreshControl refreshing={pnl.loading && !pnl.data} onRefresh={pnl.refresh} tintColor={colors.accent} />}
+      refreshControl={<RefreshControl refreshing={pnl.refreshing} onRefresh={pnl.refresh} tintColor={colors.accent} />}
     >
       <View style={styles.tabs}>
         {PERIODS.map((p) => (

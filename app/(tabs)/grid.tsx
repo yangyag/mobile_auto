@@ -29,7 +29,7 @@ export default function GridScreen() {
         data={sorted}
         keyExtractor={(s) => String(s.slot_index)}
         renderItem={({ item }) => <SlotRow slot={item} onPress={setSelected} />}
-        refreshControl={<RefreshControl refreshing={grid.loading && !grid.data} onRefresh={grid.refresh} tintColor={colors.accent} />}
+        refreshControl={<RefreshControl refreshing={grid.refreshing} onRefresh={grid.refresh} tintColor={colors.accent} />}
         ListEmptyComponent={
           grid.loading ? <Text style={styles.empty}>로딩 중...</Text>
           : <Text style={styles.empty}>슬롯 없음</Text>

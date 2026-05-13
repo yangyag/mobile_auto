@@ -16,7 +16,7 @@ export default function Dashboard() {
   const todayPnl = useAutoRefresh(useCallback(() => getPnlRealized('d'), []), 30_000);
 
   const anyError = status.error ?? price.error ?? summary.error ?? todayPnl.error;
-  const refreshing = status.loading && price.loading && summary.loading;
+  const refreshing = status.refreshing || price.refreshing || summary.refreshing || todayPnl.refreshing;
 
   const refreshAll = useCallback(() => {
     status.refresh(); price.refresh(); summary.refresh(); todayPnl.refresh();

@@ -8,10 +8,12 @@ export function useAutoRefresh<T>(
 ) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const aliveRef = useRef(true);
 
   const load = useCallback(async () => {
+    if (aliveRef.current) setRefreshing(true);
     try {
       const next = await fetcher();
       if (aliveRef.current) {
@@ -21,7 +23,10 @@ export function useAutoRefresh<T>(
     } catch (e) {
       if (aliveRef.current) setError(e instanceof Error ? e : new Error(String(e)));
     } finally {
-      if (aliveRef.current) setLoading(false);
+      if (aliveRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [fetcher]);
 
@@ -43,5 +48,5 @@ export function useAutoRefresh<T>(
     }, [load, intervalMs]),
   );
 
-  return { data, loading, error, refresh: load };
+  return { data, loading, refreshing, error, refresh: load };
 }

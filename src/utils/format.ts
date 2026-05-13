@@ -20,7 +20,7 @@ export function formatRelativeTime(
   tsMs: number | null | undefined,
   nowMs: number = Date.now(),
 ): string {
-  if (tsMs == null) return '';
+  if (tsMs == null || Number.isNaN(tsMs)) return '';
   const diff = Math.max(0, Math.floor((nowMs - tsMs) / 1000));
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;

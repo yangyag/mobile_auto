@@ -18,7 +18,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.automobile.app"
+      "package": "com.automobile.app",
+      "usesCleartextTraffic": true
     },
     "web": {
       "output": "static",

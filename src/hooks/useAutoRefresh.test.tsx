@@ -52,4 +52,17 @@ describe('useAutoRefresh', () => {
     const view = render(<Harness fetcher={fetcher} />);
     await waitFor(() => expect(view.getByTestId('error').props.children).toBe('boom'));
   });
+
+  it('refreshing은 fetch 중일 때만 true', async () => {
+    let resolve: ((v: number) => void) | null = null;
+    const fetcher = jest.fn().mockImplementation(() => new Promise<number>((r) => { resolve = r; }));
+    function R() {
+      const { refreshing } = useAutoRefresh(fetcher);
+      return <Text testID="refreshing">{refreshing ? '1' : '0'}</Text>;
+    }
+    const view = render(<R />);
+    await waitFor(() => expect(view.getByTestId('refreshing').props.children).toBe('1'));
+    await act(async () => { resolve!(7); });
+    await waitFor(() => expect(view.getByTestId('refreshing').props.children).toBe('0'));
+  });
 });
