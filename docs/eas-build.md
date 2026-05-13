@@ -199,6 +199,10 @@ eas build -p android --profile preview
 
 ### 빌드는 성공하지만 앱에서 API 호출 실패
 
+두 가지 원인 가능:
+
+**원인 1: HTTP 차단**
+
 `app.json`에 `"usesCleartextTraffic": true`가 있는지 확인:
 
 ```powershell
@@ -206,6 +210,34 @@ cat app.json
 ```
 
 `android` 블록 안에 있어야 한다. 안 그러면 Android 9+에서 HTTP(non-HTTPS) 호출이 차단된다.
+
+**원인 2: 환경변수가 빌드에 안 들어감 (가장 흔함)**
+
+`EXPO_PUBLIC_API_BASE` 같은 환경변수가 빌드 결과 APK에 박혀있지 않으면, 모든 API 호출이 `"Network failure"`로 실패한다. `BASE = ''`라서 fetch URL이 상대 경로가 되어버리기 때문.
+
+이유: `.env`가 `.gitignore`에 있으면 EAS Build가 클라우드에 코드 올릴 때 그 파일이 제외된다. → 빌드 서버에서 `process.env.EXPO_PUBLIC_API_BASE`가 `undefined`.
+
+해결: `eas.json`의 빌드 프로파일에 env를 명시한다.
+
+```json
+"preview": {
+  "distribution": "internal",
+  "android": { "buildType": "apk" },
+  "env": {
+    "EXPO_PUBLIC_API_BASE": "http://<EC2_IP>:8086"
+  }
+}
+```
+
+이렇게 박으면 빌드 시 그 값이 JS 번들에 inline되어 들어간다. Expo Go(로컬 `.env` 직접 읽음)는 영향 없음 — EAS Build에서만 필요한 설정이다.
+
+⚠️ `eas.json`은 git에 커밋되므로, **진짜로 비밀이어야 하는 값(API 시크릿 같은)은 이 방법으로 박지 말고** EAS Secrets를 쓴다:
+
+```powershell
+eas env:create --name MY_SECRET --value "..."
+```
+
+API 베이스 URL은 자체로 비밀이 아니라(폰 패킷 sniffing하면 어차피 보임) `eas.json`에 박아도 무방하다.
 
 ### 빌드 진행 중에 다른 작업하고 싶다
 
