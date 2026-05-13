@@ -26,7 +26,7 @@ export default function OrdersScreen() {
       ) : null}
       <SectionList
         sections={sections}
-        keyExtractor={(item, index) => `${item.uuid}:${index}`}
+        keyExtractor={(item, index) => `${item.order_id}:${index}`}
         renderSectionHeader={({ section }) => (
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
@@ -39,20 +39,22 @@ export default function OrdersScreen() {
 }
 
 function OrderRow({ order }: { order: PendingOrder | RecentOrder }) {
-  const isAsk = order.side === 'ask';
+  const isAsk = order.side === 'SELL';
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
         <Text style={[styles.side, { color: isAsk ? colors.negative : colors.positive }]}>
-          {isAsk ? 'SELL' : 'BUY'} · {order.state}
+          {order.side} · {order.status}
         </Text>
         <Text style={styles.meta}>
           {order.price != null ? formatKrw(order.price) : 'market'}
           {' · '}
-          {order.volume != null ? formatBtc(order.volume) : '-'}
+          {order.quantity != null ? formatBtc(order.quantity) : '-'}
         </Text>
       </View>
-      <Text style={styles.time}>{formatRelativeTime(Date.parse(order.created_at))}</Text>
+      <Text style={styles.time}>
+        {order.created_at ? formatRelativeTime(Date.parse(order.created_at)) : ''}
+      </Text>
     </View>
   );
 }

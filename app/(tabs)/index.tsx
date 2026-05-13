@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { ScrollView, View, Text, StyleSheet, RefreshControl, Pressable } from 'react-native';
 import { useAutoRefresh } from '../../src/hooks/useAutoRefresh';
-import { getBotStatus, getMarketPrice, getGridSummary, getPnlRealized } from '../../src/api/endpoints';
+import { getBotStatus, getMarketPrice, getGridSummary, getPnlRealized, getPendingOrders } from '../../src/api/endpoints';
 import { StatCard } from '../../src/components/StatCard';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
 import { colors } from '../../src/theme/colors';
@@ -13,14 +13,19 @@ export default function Dashboard() {
   const status = useAutoRefresh(getBotStatus, 10_000);
   const price = useAutoRefresh(getMarketPrice, 10_000);
   const summary = useAutoRefresh(getGridSummary, 10_000);
+  const pending = useAutoRefresh(getPendingOrders, 10_000);
   const todayPnl = useAutoRefresh(useCallback(() => getPnlRealized('d'), []), 30_000);
 
-  const anyError = status.error ?? price.error ?? summary.error ?? todayPnl.error;
-  const refreshing = status.refreshing || price.refreshing || summary.refreshing || todayPnl.refreshing;
+  const anyError = status.error ?? price.error ?? summary.error ?? pending.error ?? todayPnl.error;
+  const refreshing = status.refreshing || price.refreshing || summary.refreshing || pending.refreshing || todayPnl.refreshing;
 
   const refreshAll = useCallback(() => {
-    status.refresh(); price.refresh(); summary.refresh(); todayPnl.refresh();
-  }, [status, price, summary, todayPnl]);
+    status.refresh(); price.refresh(); summary.refresh(); pending.refresh(); todayPnl.refresh();
+  }, [status, price, summary, pending, todayPnl]);
+
+  const todayBucket = todayPnl.data?.buckets?.[0];
+  const todayNet = todayBucket?.realized_pnl_krw;
+  const todayNetNum = todayNet != null ? Number(todayNet) : null;
 
   return (
     <ScrollView
@@ -43,29 +48,28 @@ export default function Dashboard() {
       <View style={styles.body}>
         <StatCard
           label="보유"
-          value={summary.data ? formatBtc(summary.data.total_held_btc) : '—'}
+          value={summary.data ? formatBtc(summary.data.total_inventory_btc) : '—'}
           subtitle={
             summary.data
-              ? `${summary.data.held_slots}/${summary.data.total_slots} 슬롯 · 평단 ${formatKrw(summary.data.average_buy_price)}`
+              ? `${summary.data.holding_count}/${summary.data.row_count} 슬롯 · 평단 ${formatKrw(summary.data.avg_buy_price)}`
               : undefined
           }
           loading={summary.loading && !summary.data}
         />
         <StatCard
           label="오늘 손익"
-          value={todayPnl.data ? formatSigned(todayPnl.data.net_krw) : '—'}
+          value={todayNet != null ? formatSigned(todayNet) : '—'}
           tone={
-            todayPnl.data
-              ? todayPnl.data.net_krw > 0 ? 'positive'
-              : todayPnl.data.net_krw < 0 ? 'negative' : 'default'
-              : 'default'
+            todayNetNum == null ? 'default'
+            : todayNetNum > 0 ? 'positive'
+            : todayNetNum < 0 ? 'negative' : 'default'
           }
           loading={todayPnl.loading && !todayPnl.data}
         />
         <StatCard
           label="미체결"
-          value={summary.data ? `${summary.data.pending_orders_count}건` : '—'}
-          loading={summary.loading && !summary.data}
+          value={pending.data ? `${pending.data.length}건` : '—'}
+          loading={pending.loading && !pending.data}
         />
 
         <Pressable onPress={logout} style={styles.logoutBtn}>

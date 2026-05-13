@@ -14,8 +14,8 @@ export default function GridScreen() {
   const grid = useAutoRefresh(getGridState, 10_000);
   const [selected, setSelected] = useState<GridSlot | null>(null);
 
-  const sorted = (grid.data?.slots ?? []).slice().sort((a, b) => b.buy_price - a.buy_price);
-  const heldCount = sorted.filter((s) => s.held_qty > 0).length;
+  const sorted = (grid.data?.slots ?? []).slice().sort((a, b) => Number(b.buy_price) - Number(a.buy_price));
+  const heldCount = sorted.filter((s) => Number(s.held_qty) > 0).length;
 
   const onClose = useCallback(() => setSelected(null), []);
 
@@ -54,11 +54,11 @@ export default function GridScreen() {
                   {selected.pending_order ? (
                     <>
                       <Text style={styles.modalSection}>미체결</Text>
-                      <DetailRow k="uuid" v={selected.pending_order.uuid} />
+                      <DetailRow k="order_id" v={selected.pending_order.order_id} />
                       <DetailRow k="side" v={selected.pending_order.side} />
-                      <DetailRow k="state" v={selected.pending_order.state} />
+                      <DetailRow k="status" v={selected.pending_order.status} />
                       <DetailRow k="price" v={formatKrw(selected.pending_order.price ?? 0)} />
-                      <DetailRow k="volume" v={formatBtc(selected.pending_order.volume ?? 0)} />
+                      <DetailRow k="quantity" v={formatBtc(selected.pending_order.quantity ?? 0)} />
                     </>
                   ) : null}
                 </>

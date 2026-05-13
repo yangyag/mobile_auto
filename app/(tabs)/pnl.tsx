@@ -5,7 +5,7 @@ import { getPnlRealized, PnlPeriod } from '../../src/api/endpoints';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
 import { StatCard } from '../../src/components/StatCard';
 import { colors } from '../../src/theme/colors';
-import { formatKrw, formatSigned } from '../../src/utils/format';
+import { formatBtc, formatSigned } from '../../src/utils/format';
 
 const PERIODS: { key: PnlPeriod; label: string }[] = [
   { key: 'd', label: '오늘' },
@@ -19,6 +19,9 @@ export default function PnlScreen() {
   const [period, setPeriod] = useState<PnlPeriod>('d');
   const fetcher = useCallback(() => getPnlRealized(period), [period]);
   const pnl = useAutoRefresh(fetcher, 30_000);
+
+  const bucket = pnl.data?.buckets?.[0];
+  const realizedNum = bucket ? Number(bucket.realized_pnl_krw) : null;
 
   return (
     <ScrollView
@@ -41,20 +44,25 @@ export default function PnlScreen() {
 
       <View style={styles.body}>
         {pnl.data ? (
-          <>
-            <Text style={styles.range}>
-              {pnl.data.from} ~ {pnl.data.to}
-            </Text>
-            <StatCard
-              label="순손익"
-              value={formatSigned(pnl.data.net_krw)}
-              tone={pnl.data.net_krw > 0 ? 'positive' : pnl.data.net_krw < 0 ? 'negative' : 'default'}
-            />
-            <StatCard label="총수익" value={formatKrw(pnl.data.gross_krw)} />
-            <StatCard label="수수료" value={formatKrw(pnl.data.fee_krw)} />
-            <StatCard label="매도 주문 수" value={String(pnl.data.sell_order_count)} />
-            <StatCard label="체결 건수" value={String(pnl.data.fill_count)} />
-          </>
+          bucket ? (
+            <>
+              <Text style={styles.range}>{bucket.key}</Text>
+              <StatCard
+                label="순손익"
+                value={formatSigned(bucket.realized_pnl_krw)}
+                tone={
+                  realizedNum == null ? 'default'
+                  : realizedNum > 0 ? 'positive'
+                  : realizedNum < 0 ? 'negative' : 'default'
+                }
+              />
+              <StatCard label="매수/매도 BTC" value={formatBtc(bucket.matched_qty_btc)} />
+              <StatCard label="주문 수" value={String(bucket.order_count)} />
+              <StatCard label="체결 건수" value={String(bucket.trade_count)} />
+            </>
+          ) : (
+            <Text style={styles.loading}>해당 기간 손익 없음</Text>
+          )
         ) : (
           <Text style={styles.loading}>로딩 중...</Text>
         )}

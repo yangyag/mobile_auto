@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function SlotRow({ slot, onPress }: Props) {
-  const isHeld = slot.held_qty > 0;
+  const isHeld = Number(slot.held_qty) > 0;
   return (
     <Pressable onPress={() => onPress?.(slot)} style={styles.row}>
       <View style={styles.col}>
