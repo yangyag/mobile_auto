@@ -201,8 +201,9 @@ npx expo install --check
 - **개발 vs 프로덕션 환경 차이**: `__DEV__` 분기, console.log 동작 차이 등
 - **native module 차이**: Expo Go는 표준 native module만 포함. 커스텀 native module 쓰면 안 됨.
 - **환경변수**: `.env`는 EAS Build 시점에 임베드된다. 빌드 후 `.env` 수정해도 APK에 반영 안 됨.
+- **HTTP 차단**: APK에서는 Android Manifest의 cleartext 설정이 실제로 들어가야 `http://` API 호출이 된다.
 
-이 프로젝트는 표준 Expo SDK만 쓰니까 Expo Go ↔ APK 동작이 거의 같을 것이다.
+로그인 화면에서 `"network failure"`가 뜨면 [EAS Build 문서의 로그인/API 실패 섹션](./eas-build.md#빌드는-성공하지만-앱에서-로그인api-호출-실패)을 먼저 확인한다.
 
 ## Expo Go의 한계
 

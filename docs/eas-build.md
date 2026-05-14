@@ -87,12 +87,16 @@ cat eas.json
   "distribution": "internal",
   "android": {
     "buildType": "apk"
+  },
+  "env": {
+    "EXPO_PUBLIC_API_BASE": "http://43.202.113.123:8086"
   }
 }
 ```
 
 - `"distribution": "internal"`: Play Store에 안 올림. 다운로드 URL로 직접 설치.
 - `"android.buildType": "apk"`: AAB가 아닌 APK로 빌드.
+- `"env.EXPO_PUBLIC_API_BASE"`: APK 안에 들어갈 API 서버 주소.
 
 ## 빌드 실행
 
@@ -101,6 +105,16 @@ cat eas.json
 ```powershell
 eas build -p android --profile preview
 ```
+
+### 설정을 바꾼 뒤 확실하게 다시 빌드
+
+`app.json`, `eas.json`, Expo config plugin, 환경변수처럼 빌드 결과물에 박히는 설정을 바꿨다면 캐시를 비우고 다시 빌드한다:
+
+```powershell
+eas build -p android --profile preview --clear-cache
+```
+
+빌드가 끝나면 폰에서 기존 앱을 지우고 새 APK를 설치하면 가장 확실하다. 단순 JS 수정은 덮어 설치해도 되지만, 네이티브 Manifest 설정이나 환경변수 문제를 확인할 때는 기존 앱 삭제 후 설치가 헷갈림을 줄인다.
 
 ### 처음 빌드할 때만 묻는 prompt
 
@@ -197,19 +211,53 @@ eas build -p android --profile preview
 
 `--local` 없음.
 
-### 빌드는 성공하지만 앱에서 API 호출 실패
+### 빌드는 성공하지만 앱에서 로그인/API 호출 실패
 
-두 가지 원인 가능:
+증상:
+- Expo Go에서는 로그인/API 호출이 된다.
+- EAS로 만든 APK에서는 로그인 화면에서 `"network failure"`가 뜬다.
+
+먼저 폰 브라우저에서 아래 주소가 열리는지 확인한다:
+
+```text
+http://43.202.113.123:8086/docs
+```
+
+폰 브라우저에서도 안 열리면 앱 문제가 아니라 폰 네트워크, 서버 방화벽, EC2 보안 그룹, 서버 상태 문제다.
+
+폰 브라우저에서는 열리는데 APK에서만 실패하면 아래 순서로 확인한다.
 
 **원인 1: HTTP 차단**
 
-`app.json`에 `"usesCleartextTraffic": true`가 있는지 확인:
+현재 API 주소는 `http://`다. Android 9+에서는 기본적으로 HTTP(non-HTTPS) 호출을 막기 때문에, APK의 실제 `AndroidManifest.xml`에 아래 값이 들어가야 한다:
 
-```powershell
-cat app.json
+```xml
+android:usesCleartextTraffic="true"
 ```
 
-`android` 블록 안에 있어야 한다. 안 그러면 Android 9+에서 HTTP(non-HTTPS) 호출이 차단된다.
+이 프로젝트는 [plugins/withCleartextTraffic.js](../plugins/withCleartextTraffic.js) config plugin으로 이 값을 직접 넣는다. 단순히 `app.json`에 `"usesCleartextTraffic": true`가 보이는 것만으로는 부족할 수 있다. 실제 Manifest에 반영됐는지 확인:
+
+```powershell
+npx expo config --type introspect --json | Select-String "usesCleartextTraffic"
+```
+
+정상이라면 출력에 아래 값이 보여야 한다:
+
+```text
+"android:usesCleartextTraffic":"true"
+```
+
+이 값이 안 보이면 [app.json](../app.json)의 `plugins`에 아래 항목이 있는지 확인:
+
+```json
+"./plugins/withCleartextTraffic"
+```
+
+수정 후에는 반드시 새로 빌드한다:
+
+```powershell
+eas build -p android --profile preview --clear-cache
+```
 
 **원인 2: 환경변수가 빌드에 안 들어감 (가장 흔함)**
 
@@ -238,6 +286,10 @@ eas env:create --name MY_SECRET --value "..."
 ```
 
 API 베이스 URL은 자체로 비밀이 아니라(폰 패킷 sniffing하면 어차피 보임) `eas.json`에 박아도 무방하다.
+
+**원인 3: 이전 APK를 계속 설치함**
+
+EAS 빌드가 여러 개 있으면 예전 Artifact URL로 받은 APK를 다시 설치하는 실수가 쉽다. 빌드 상세 페이지에서 생성 시간이 최신인지 확인하고, 헷갈리면 폰에서 AutoMobile 앱을 삭제한 뒤 최신 APK를 다시 설치한다.
 
 ### 빌드 진행 중에 다른 작업하고 싶다
 
