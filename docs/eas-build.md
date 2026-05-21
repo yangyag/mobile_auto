@@ -217,6 +217,8 @@ eas build -p android --profile preview
 - Expo Go에서는 로그인/API 호출이 된다.
 - EAS로 만든 APK에서는 로그인 화면에서 `"network failure"`가 뜬다.
 
+이번 프로젝트에서 실제로 발생했던 원인과 조치 기록은 [EAS 빌드 로그인 `network failure` 원인과 조치 기록](./eas-network-failure-root-cause.md)에 따로 정리해뒀다.
+
 먼저 폰 브라우저에서 아래 주소가 열리는지 확인한다:
 
 ```text
