@@ -1,23 +1,28 @@
 import React, { useCallback } from 'react';
 import { ScrollView, View, Text, StyleSheet, RefreshControl, Pressable } from 'react-native';
-import { useAutoRefresh } from '../../src/hooks/useAutoRefresh';
+import { useManualQuery, combineLastUpdated } from '../../src/hooks/useManualQuery';
 import { getBotStatus, getMarketPrice, getGridSummary, getPnlRealized, getPendingOrders } from '../../src/api/endpoints';
 import { StatCard } from '../../src/components/StatCard';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
+import { QueryBar } from '../../src/components/QueryBar';
 import { colors } from '../../src/theme/colors';
 import { formatKrw, formatBtc, formatRelativeTime, formatSigned } from '../../src/utils/format';
 import { useAuth } from '../../src/auth/AuthContext';
 
 export default function Dashboard() {
   const { logout } = useAuth();
-  const status = useAutoRefresh(getBotStatus, 10_000);
-  const price = useAutoRefresh(getMarketPrice, 10_000);
-  const summary = useAutoRefresh(getGridSummary, 10_000);
-  const pending = useAutoRefresh(getPendingOrders, 10_000);
-  const todayPnl = useAutoRefresh(useCallback(() => getPnlRealized('d'), []), 30_000);
+  const status = useManualQuery(getBotStatus);
+  const price = useManualQuery(getMarketPrice);
+  const summary = useManualQuery(getGridSummary);
+  const pending = useManualQuery(getPendingOrders);
+  const todayPnl = useManualQuery(useCallback(() => getPnlRealized('d'), []));
 
   const anyError = status.error ?? price.error ?? summary.error ?? pending.error ?? todayPnl.error;
-  const refreshing = status.refreshing || price.refreshing || summary.refreshing || pending.refreshing || todayPnl.refreshing;
+  const loading = status.loading || price.loading || summary.loading || pending.loading || todayPnl.loading;
+  const lastUpdatedAt = combineLastUpdated([
+    status.lastUpdatedAt, price.lastUpdatedAt, summary.lastUpdatedAt,
+    pending.lastUpdatedAt, todayPnl.lastUpdatedAt,
+  ]);
 
   const refreshAll = useCallback(() => {
     status.refresh(); price.refresh(); summary.refresh(); pending.refresh(); todayPnl.refresh();
@@ -30,13 +35,17 @@ export default function Dashboard() {
   return (
     <ScrollView
       style={styles.root}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshAll} tintColor={colors.accent} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={refreshAll} tintColor={colors.accent} />}
     >
+      <QueryBar onQuery={refreshAll} loading={loading} lastUpdatedAt={lastUpdatedAt} />
+
       <View style={styles.header}>
         <Text style={styles.symbol}>KRW-BTC</Text>
         <Text style={styles.price}>{price.data ? formatKrw(price.data.price) : '—'}</Text>
         <Text style={styles.heartbeat}>
-          {status.data?.is_alive ? '봇 Alive' : '봇 정지'}
+          {status.data
+            ? (status.data.is_alive ? '봇 Alive' : '봇 정지')
+            : '—'}
           {status.data?.last_heartbeat_at
             ? ` · ${formatRelativeTime(Date.parse(status.data.last_heartbeat_at))}`
             : ''}
