@@ -2,16 +2,17 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, RefreshControl, Modal, Pressable, ScrollView,
 } from 'react-native';
-import { useAutoRefresh } from '../../src/hooks/useAutoRefresh';
+import { useManualQuery } from '../../src/hooks/useManualQuery';
 import { getGridState } from '../../src/api/endpoints';
 import { SlotRow } from '../../src/components/SlotRow';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
+import { QueryBar } from '../../src/components/QueryBar';
 import { colors } from '../../src/theme/colors';
 import { GridSlot } from '../../src/api/types';
 import { formatKrw, formatBtc } from '../../src/utils/format';
 
 export default function GridScreen() {
-  const grid = useAutoRefresh(getGridState, 10_000);
+  const grid = useManualQuery(getGridState);
   const [selected, setSelected] = useState<GridSlot | null>(null);
 
   const sorted = (grid.data?.slots ?? []).slice().sort((a, b) => Number(b.buy_price) - Number(a.buy_price));
@@ -21,6 +22,7 @@ export default function GridScreen() {
 
   return (
     <View style={styles.root}>
+      <QueryBar onQuery={grid.refresh} loading={grid.loading} lastUpdatedAt={grid.lastUpdatedAt} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>슬롯 {sorted.length}개 · 보유 {heldCount}</Text>
       </View>
@@ -29,9 +31,10 @@ export default function GridScreen() {
         data={sorted}
         keyExtractor={(s) => String(s.slot_index)}
         renderItem={({ item }) => <SlotRow slot={item} onPress={setSelected} />}
-        refreshControl={<RefreshControl refreshing={grid.refreshing} onRefresh={grid.refresh} tintColor={colors.accent} />}
+        refreshControl={<RefreshControl refreshing={grid.loading} onRefresh={grid.refresh} tintColor={colors.accent} />}
         ListEmptyComponent={
-          grid.loading ? <Text style={styles.empty}>로딩 중...</Text>
+          grid.loading ? <Text style={styles.empty}>조회 중...</Text>
+          : grid.lastUpdatedAt == null ? <Text style={styles.empty}>조회 버튼을 눌러주세요</Text>
           : <Text style={styles.empty}>슬롯 없음</Text>
         }
       />
