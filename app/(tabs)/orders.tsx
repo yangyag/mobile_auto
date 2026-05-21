@@ -1,17 +1,19 @@
 import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, RefreshControl, SectionList } from 'react-native';
-import { useAutoRefresh } from '../../src/hooks/useAutoRefresh';
+import { useManualQuery, combineLastUpdated } from '../../src/hooks/useManualQuery';
 import { getPendingOrders, getRecentOrders } from '../../src/api/endpoints';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
+import { QueryBar } from '../../src/components/QueryBar';
 import { colors } from '../../src/theme/colors';
 import { formatKrw, formatBtc, formatRelativeTime } from '../../src/utils/format';
 import { PendingOrder, RecentOrder } from '../../src/api/types';
 
 export default function OrdersScreen() {
-  const pending = useAutoRefresh(getPendingOrders, 10_000);
-  const recent = useAutoRefresh(useCallback(() => getRecentOrders(50), []), 30_000);
+  const pending = useManualQuery(getPendingOrders);
+  const recent = useManualQuery(useCallback(() => getRecentOrders(50), []));
 
-  const refreshing = pending.refreshing || recent.refreshing;
+  const loading = pending.loading || recent.loading;
+  const lastUpdatedAt = combineLastUpdated([pending.lastUpdatedAt, recent.lastUpdatedAt]);
   const refreshAll = useCallback(() => { pending.refresh(); recent.refresh(); }, [pending, recent]);
 
   const sections = [
@@ -21,6 +23,7 @@ export default function OrdersScreen() {
 
   return (
     <View style={styles.root}>
+      <QueryBar onQuery={refreshAll} loading={loading} lastUpdatedAt={lastUpdatedAt} />
       {(pending.error || recent.error) ? (
         <ErrorBanner message={(pending.error ?? recent.error)!.message} onRetry={refreshAll} />
       ) : null}
@@ -31,8 +34,12 @@ export default function OrdersScreen() {
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
         renderItem={({ item }) => <OrderRow order={item} />}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshAll} tintColor={colors.accent} />}
-        ListEmptyComponent={<Text style={styles.empty}>주문 없음</Text>}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={refreshAll} tintColor={colors.accent} />}
+        ListEmptyComponent={
+          loading ? <Text style={styles.empty}>조회 중...</Text>
+          : lastUpdatedAt == null ? <Text style={styles.empty}>조회 버튼을 눌러주세요</Text>
+          : <Text style={styles.empty}>주문 없음</Text>
+        }
       />
     </View>
   );
