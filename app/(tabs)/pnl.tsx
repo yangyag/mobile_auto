@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, Pressable } from 'react-native';
-import { useAutoRefresh } from '../../src/hooks/useAutoRefresh';
+import { useManualQuery } from '../../src/hooks/useManualQuery';
 import { getPnlRealized, PnlPeriod } from '../../src/api/endpoints';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
 import { StatCard } from '../../src/components/StatCard';
+import { QueryBar } from '../../src/components/QueryBar';
 import { colors } from '../../src/theme/colors';
 import { formatBtc, formatSigned } from '../../src/utils/format';
 
@@ -18,7 +19,7 @@ const PERIODS: { key: PnlPeriod; label: string }[] = [
 export default function PnlScreen() {
   const [period, setPeriod] = useState<PnlPeriod>('d');
   const fetcher = useCallback(() => getPnlRealized(period), [period]);
-  const pnl = useAutoRefresh(fetcher, 30_000);
+  const pnl = useManualQuery(fetcher);
 
   const bucket = pnl.data?.buckets?.[0];
   const realizedNum = bucket ? Number(bucket.realized_pnl_krw) : null;
@@ -26,8 +27,10 @@ export default function PnlScreen() {
   return (
     <ScrollView
       style={styles.root}
-      refreshControl={<RefreshControl refreshing={pnl.refreshing} onRefresh={pnl.refresh} tintColor={colors.accent} />}
+      refreshControl={<RefreshControl refreshing={pnl.loading} onRefresh={pnl.refresh} tintColor={colors.accent} />}
     >
+      <QueryBar onQuery={pnl.refresh} loading={pnl.loading} lastUpdatedAt={pnl.lastUpdatedAt} />
+
       <View style={styles.tabs}>
         {PERIODS.map((p) => (
           <Pressable
@@ -64,7 +67,9 @@ export default function PnlScreen() {
             <Text style={styles.loading}>해당 기간 손익 없음</Text>
           )
         ) : (
-          <Text style={styles.loading}>로딩 중...</Text>
+          <Text style={styles.loading}>
+            {pnl.loading ? '조회 중...' : '조회 버튼을 눌러주세요'}
+          </Text>
         )}
       </View>
     </ScrollView>
