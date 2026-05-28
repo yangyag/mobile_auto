@@ -6,7 +6,7 @@ import { StatCard } from '../../src/components/StatCard';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
 import { QueryBar } from '../../src/components/QueryBar';
 import { colors } from '../../src/theme/colors';
-import { formatKrw, formatBtc, formatRelativeTime, formatSigned } from '../../src/utils/format';
+import { formatKrw, formatBtc, formatRelativeTime, formatSigned, getBaseCurrency } from '../../src/utils/format';
 import { useAuth } from '../../src/auth/AuthContext';
 
 export default function Dashboard() {
@@ -37,6 +37,9 @@ export default function Dashboard() {
   const openSellsPnl = openSells.data?.summary?.total_unrealized_krw;
   const openSellsPnlNum = openSellsPnl != null ? Number(openSellsPnl) : null;
 
+  const symbol = price.data?.symbol ?? status.data?.symbol ?? summary.data?.symbol ?? 'KRW-USDT';
+  const baseCurrency = getBaseCurrency(symbol);
+
   return (
     <ScrollView
       style={styles.root}
@@ -45,7 +48,7 @@ export default function Dashboard() {
       <QueryBar onQuery={refreshAll} loading={loading} lastUpdatedAt={lastUpdatedAt} />
 
       <View style={styles.header}>
-        <Text style={styles.symbol}>KRW-BTC</Text>
+        <Text style={styles.symbol}>{symbol}</Text>
         <Text style={styles.price}>{price.data ? formatKrw(price.data.price) : '—'}</Text>
         <Text style={styles.heartbeat}>
           {status.data
@@ -61,8 +64,8 @@ export default function Dashboard() {
 
       <View style={styles.body}>
         <StatCard
-          label="보유"
-          value={summary.data ? formatBtc(summary.data.total_inventory_btc) : '—'}
+          label={`보유 (${baseCurrency})`}
+          value={summary.data ? formatBtc(summary.data.total_inventory_btc, symbol) : '—'}
           subtitle={
             summary.data
               ? `${summary.data.holding_count}/${summary.data.row_count} 슬롯 · 평단 ${formatKrw(summary.data.avg_buy_price)}`

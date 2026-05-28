@@ -12,9 +12,19 @@ export function formatKrw(value: Numeric): string {
   return Math.trunc(n).toLocaleString('en-US');
 }
 
-export function formatBtc(value: Numeric): string {
+export function getBaseCurrency(symbol?: string | null): string {
+  if (!symbol) return 'BTC';
+  const parts = symbol.split('-');
+  return parts.length > 1 ? parts[1].toUpperCase() : parts[0].toUpperCase();
+}
+
+export function formatBtc(value: Numeric, symbol?: string | null): string {
   const n = toFiniteNumber(value);
   if (n == null) return '';
+  const base = getBaseCurrency(symbol);
+  if (base === 'USDT') {
+    return n.toFixed(4);
+  }
   return n.toFixed(8);
 }
 

@@ -21,6 +21,10 @@ describe('formatBtc', () => {
     expect(formatBtc(0.0432)).toBe('0.04320000');
     expect(formatBtc(1)).toBe('1.00000000');
   });
+  it('USDT 포맷팅 (소수점 4자리)', () => {
+    expect(formatBtc(1.23456, 'KRW-USDT')).toBe('1.2346');
+    expect(formatBtc(1, 'KRW-USDT')).toBe('1.0000');
+  });
 });
 
 describe('formatSigned', () => {

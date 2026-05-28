@@ -56,7 +56,7 @@ function OrderRow({ order }: { order: PendingOrder | RecentOrder }) {
         <Text style={styles.meta}>
           {order.price != null ? formatKrw(order.price) : 'market'}
           {' · '}
-          {order.quantity != null ? formatBtc(order.quantity) : '-'}
+          {order.quantity != null ? formatBtc(order.quantity, order.symbol) : '-'}
         </Text>
       </View>
       <Text style={styles.time}>

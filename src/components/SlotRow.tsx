@@ -6,10 +6,11 @@ import { formatKrw, formatBtc } from '../utils/format';
 
 interface Props {
   slot: GridSlot;
+  symbol?: string;
   onPress?: (slot: GridSlot) => void;
 }
 
-export function SlotRow({ slot, onPress }: Props) {
+export function SlotRow({ slot, symbol, onPress }: Props) {
   const isHeld = Number(slot.held_qty) > 0;
   return (
     <Pressable
@@ -23,7 +24,7 @@ export function SlotRow({ slot, onPress }: Props) {
       <View style={styles.col}>
         <Text style={[styles.label, isHeld && styles.labelHeld]}>{isHeld ? '보유' : '계획'}</Text>
         <Text style={[styles.value, isHeld && styles.valueHeld]}>
-          {formatBtc(isHeld ? slot.held_qty : slot.planned_qty)}
+          {formatBtc(isHeld ? slot.held_qty : slot.planned_qty, symbol)}
         </Text>
       </View>
       <View style={styles.col}>

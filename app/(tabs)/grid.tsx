@@ -30,7 +30,7 @@ export default function GridScreen() {
       <FlatList
         data={sorted}
         keyExtractor={(s) => String(s.slot_index)}
-        renderItem={({ item }) => <SlotRow slot={item} onPress={setSelected} />}
+        renderItem={({ item }) => <SlotRow slot={item} symbol={grid.data?.symbol} onPress={setSelected} />}
         refreshControl={<RefreshControl refreshing={grid.loading} onRefresh={grid.refresh} tintColor={colors.accent} />}
         ListEmptyComponent={
           grid.loading ? <Text style={styles.empty}>조회 중...</Text>
@@ -47,9 +47,9 @@ export default function GridScreen() {
                 <>
                   <Text style={styles.modalTitle}>슬롯 #{selected.slot_index}</Text>
                   <DetailRow k="매수가" v={formatKrw(selected.buy_price)} />
-                  <DetailRow k="계획 수량" v={formatBtc(selected.planned_qty)} />
+                  <DetailRow k="계획 수량" v={formatBtc(selected.planned_qty, grid.data?.symbol)} />
                   <DetailRow k="계획 매수액" v={formatKrw(selected.planned_buy_krw)} />
-                  <DetailRow k="보유 수량" v={formatBtc(selected.held_qty)} />
+                  <DetailRow k="보유 수량" v={formatBtc(selected.held_qty, grid.data?.symbol)} />
                   <DetailRow k="원가" v={formatKrw(selected.inventory_cost_krw)} />
                   <DetailRow k="기본 매도가" v={formatKrw(selected.sell_price)} />
                   <DetailRow k="유효 매도가" v={formatKrw(selected.effective_sell_price)} />
@@ -61,7 +61,7 @@ export default function GridScreen() {
                       <DetailRow k="side" v={selected.pending_order.side} />
                       <DetailRow k="status" v={selected.pending_order.status} />
                       <DetailRow k="price" v={formatKrw(selected.pending_order.price ?? 0)} />
-                      <DetailRow k="quantity" v={formatBtc(selected.pending_order.quantity ?? 0)} />
+                      <DetailRow k="quantity" v={formatBtc(selected.pending_order.quantity ?? 0, selected.pending_order.symbol ?? grid.data?.symbol)} />
                     </>
                   ) : null}
                 </>

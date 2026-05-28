@@ -6,7 +6,7 @@ import { ErrorBanner } from '../../src/components/ErrorBanner';
 import { StatCard } from '../../src/components/StatCard';
 import { QueryBar } from '../../src/components/QueryBar';
 import { colors } from '../../src/theme/colors';
-import { formatBtc, formatSigned } from '../../src/utils/format';
+import { formatBtc, formatSigned, getBaseCurrency } from '../../src/utils/format';
 
 const PERIODS: { key: PnlPeriod; label: string }[] = [
   { key: 'd', label: '오늘' },
@@ -61,8 +61,8 @@ export default function PnlScreen() {
                 loading={pnl.loading}
               />
               <StatCard
-                label="매수/매도 BTC"
-                value={bucket ? formatBtc(bucket.matched_qty_btc) : '—'}
+                label={`매수/매도 ${getBaseCurrency(pnl.data?.market ?? 'KRW-USDT')}`}
+                value={bucket ? formatBtc(bucket.matched_qty_btc, pnl.data?.market ?? 'KRW-USDT') : '—'}
                 loading={pnl.loading}
               />
               <StatCard
