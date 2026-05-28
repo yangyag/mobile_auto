@@ -1,5 +1,24 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
+let activeQueriesCount = 0;
+const listeners = new Set<(count: number) => void>();
+
+export function getActiveQueriesCount(): number {
+  return activeQueriesCount;
+}
+
+export function subscribeQueriesCount(listener: (count: number) => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function updateQueriesCount(delta: number) {
+  activeQueriesCount = Math.max(0, activeQueriesCount + delta);
+  listeners.forEach((l) => l(activeQueriesCount));
+}
+
 /**
  * 수동 조회 훅. 마운트/포커스/폴링으로 자동 조회하지 않는다.
  * refresh()를 호출했을 때만 fetcher를 실행한다.
@@ -20,6 +39,7 @@ export function useManualQuery<T>(fetcher: () => Promise<T>) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
+    updateQueriesCount(1);
     try {
       const next = await fetcher();
       if (aliveRef.current) {
@@ -33,6 +53,7 @@ export function useManualQuery<T>(fetcher: () => Promise<T>) {
       }
     } finally {
       if (aliveRef.current) setLoading(false);
+      updateQueriesCount(-1);
     }
   }, [fetcher]);
 

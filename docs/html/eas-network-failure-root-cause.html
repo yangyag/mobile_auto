@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EAS 빌드 로그인 network failure 원인과 조치 기록</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <a href="#" class="logo">AutoMobile <span>Docs</span></a>
+      <nav class="top-nav">
+        <a href="./eas-build.html">안드로이드 APK 빌드</a>
+        <a href="./expo-dev.html">Expo Go 개발/테스트</a>
+        <a href="./eas-network-failure-root-cause.html" class="active">HTTP 통신 장애 조치</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrapper">
+    <aside>
+      <h3>목차</h3>
+      <ul>
+        <li><a href="#symptoms">장애 증상</a></li>
+        <li><a href="#conclusion">원인 결론</a></li>
+        <li><a href="#details">상세 분석 내용</a></li>
+        <li><a href="#remedy">조치 방법</a></li>
+        <li><a href="#verification">조치 후 검증</a></li>
+        <li><a href="#checklist">장애 재발 시 점검 순서</a></li>
+      </ul>
+    </aside>
+
+    <main>
+      <article>
+        <h1>EAS 빌드 로그인 <code>network failure</code> 원인과 조치 기록</h1>
+        <p><strong>작성일:</strong> 2026-05-15</p>
+
+        <h2 id="symptoms">장애 증상</h2>
+        <ul>
+          <li><strong>Expo Go(개발 환경)</strong>: 로그인 및 모든 API 조회 정상 동작.</li>
+          <li><strong>EAS Build APK(배포 환경)</strong>: 로그인 시도시 <code>network failure</code> 오류 발생 및 접속 불가.</li>
+          <li>동일한 서버 정보와 계정을 입력했음에도, 빌드된 실제 설치형 앱(APK)에서만 네트워크 실패 오류가 발생했습니다.</li>
+        </ul>
+
+        <h2 id="conclusion">원인 결론</h2>
+        <div class="alert warning">
+          <h4>💡 HTTP 트래픽 차단 이슈 (Cleartext Traffic)</h4>
+          <p>원인은 <strong>빌드된 Android APK의 실제 <code>AndroidManifest.xml</code>에 HTTP 허용 설정이 반영되지 않은 것</strong>이었습니다.</p>
+        </div>
+        <p>현재 자동매매 봇 서버의 API는 <code>http://43.202.113.123:8086</code>과 같이 HTTPS가 아닌 일반 HTTP 프로토콜을 사용합니다. 안드로이드 9(API 28) 이상부터는 보안 정책으로 인해 일반 HTTP(cleartext) 트래픽이 완전히 차단됩니다. 따라서 Manifest 파일에 아래와 같이 명시적인 예외 허용 설정이 입력되어야 합니다:</p>
+        <pre><code>android:usesCleartextTraffic="true"</code></pre>
+        <p>기존 <code>app.json</code>에 설정이 기재되어 있었으나, Expo SDK 버전별 빌드 엔진 버그 등으로 인해 최종 APK 빌드 본에는 이 설정이 유실된 채 패키징되었던 것이 근본적 원인이었습니다.</p>
+
+        <h2 id="details">상세 분석 내용</h2>
+        <p>1. <code>eas.json</code> 빌드 환경변수 내의 <code>EXPO_PUBLIC_API_BASE</code> 주소는 올바르게 바인딩되어 있었습니다.</p>
+        <pre><code>"env": {
+  "EXPO_PUBLIC_API_BASE": "http://43.202.113.123:8086"
+}</code></pre>
+        <p>2. 빌드 전 로컬 터미널에서 실제 빌드에 적용될 Manifest 구조를 추적/추출하는 명칭 검사 스크립트를 작동시켰습니다:</p>
+        <pre><code>npx expo config --type introspect --json | Select-String "usesCleartextTraffic"</code></pre>
+        <p>조치 이전 빌드 대상 결과에서는 <code>usesCleartextTraffic</code> 속성이 완전히 누락되어 HTTP 연결 자체가 내부 샌드박스 영역에서 차단되었음을 확인했습니다.</p>
+
+        <h2 id="remedy">조치 방법</h2>
+        <p>안드로이드 Manifest 빌드 파이프라인에 직접 개입하여 강제로 속성을 주입하는 Expo config plugin을 추가했습니다.</p>
+        <p><strong>위치:</strong> <a href="../plugins/withCleartextTraffic.js" class="doc-link">plugins/withCleartextTraffic.js</a></p>
+        <pre><code>const { AndroidConfig, withAndroidManifest } = require('@expo/config-plugins');
+
+function withCleartextTraffic(config) {
+  return withAndroidManifest(config, (config) => {
+    const application = AndroidConfig.Manifest.getMainApplicationOrThrow(config.modResults);
+    application.$['android:usesCleartextTraffic'] = 'true';
+    return config;
+  });
+}
+
+module.exports = withCleartextTraffic;</code></pre>
+
+        <p>그리고 <code>app.json</code> 플러그인 리스트에 이를 수동 명시했습니다:</p>
+        <pre><code>"plugins": [
+  "expo-router",
+  "expo-secure-store",
+  "./plugins/withCleartextTraffic"
+]</code></pre>
+
+        <h2 id="verification">조치 후 검증</h2>
+        <p>추가된 Config plugin이 빌드 시점에 완벽히 동작하는지 확인하기 위해 유닛 테스트 코드를 구성했습니다.</p>
+        <p><strong>테스트 경로:</strong> <a href="../plugins/cleartext-config.test.js" class="doc-link">plugins/cleartext-config.test.js</a></p>
+        <p>로컬 쉘(CMD/PowerShell) 환경에서 명시적으로 Manifest를 로드해 아래와 같이 최종 확인을 통과시켰습니다:</p>
+        <pre><code>node -e "const {execFileSync}=require('child_process'); const cli=require.resolve('expo/bin/cli'); const out=execFileSync(process.execPath,[cli,'config','--type','introspect','--json'],{encoding:'utf8'}); const c=JSON.parse(out); console.log(c._internal.modResults.android.manifest.manifest.application[0]['$']['android:usesCleartextTraffic']);"</code></pre>
+        <p><strong>출력값:</strong> <code>true</code> (정상 주입 완료)</p>
+
+        <h2 id="checklist">장애 재발 시 점검 순서</h2>
+        <ol>
+          <li>사용 중인 폰 브라우저 주소창에 <code>http://43.202.113.123:8086/docs</code>가 접속되는지 우선 점검합니다. (서버/포트 차단 확인)</li>
+          <li><code>eas.json</code> 파일의 <code>preview.env.EXPO_PUBLIC_API_BASE</code> 주소에 오타가 없는지 확인합니다.</li>
+          <li><code>npx expo config --type introspect --json | Select-String "usesCleartextTraffic"</code> 명령어로 실제 Manifest 반영 여부를 확인합니다.</li>
+          <li>모든 네이티브 설정 변경 후 빌드 시에는 반드시 캐시 클리어 빌드 옵션을 사용합니다:</li>
+        </ol>
+        <pre><code>eas build -p android --profile preview --clear-cache</code></pre>
+      </article>
+    </main>
+  </div>
+
+</body>
+</html>

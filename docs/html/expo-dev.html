@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expo Go로 개발/테스트하기</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <header>
+    <div class="header-container">
+      <a href="#" class="logo">AutoMobile <span>Docs</span></a>
+      <nav class="top-nav">
+        <a href="./eas-build.html">안드로이드 APK 빌드</a>
+        <a href="./expo-dev.html" class="active">Expo Go 개발/테스트</a>
+        <a href="./eas-network-failure-root-cause.html">HTTP 통신 장애 조치</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrapper">
+    <aside>
+      <h3>목차</h3>
+      <ul>
+        <li><a href="#summary">한 줄 요약</a></li>
+        <li><a href="#prepare">사전 준비</a></li>
+        <li><a href="#run">개발 서버 실행</a></li>
+        <li><a href="#workflow">코드 수정 워크플로</a></li>
+        <li><a href="#troubleshooting">자주 만나는 문제</a></li>
+        <li><a href="#limitations">Expo Go의 한계</a></li>
+        <li><a href="#shortcuts">키보드 단축키</a></li>
+        <li><a href="#git-pull">새로운 코드를 받았을 때</a></li>
+      </ul>
+    </aside>
+
+    <main>
+      <article>
+        <h1>Expo Go로 개발/테스트하기</h1>
+        <p>Expo Go는 실제 안드로이드 폰에 설치되는 컨테이너 앱입니다. 코드를 폰에 직접 빌드 및 설치하지 않고도, PC의 Metro 번들러에서 JavaScript 코드를 전송받아 즉시 실행할 수 있게 해 줍니다. 코드 수정 시 폰에서 핫 리로드(Hot Reload)를 통해 1~2초 내로 반영됩니다.</p>
+
+        <h2 id="summary">한 줄 요약</h2>
+        <div class="alert positive">
+          <h4>💡 빠른 실행 방법</h4>
+          <p>폰에 Expo Go 앱 설치 → PC에서 <code>npx expo start</code> 실행 → 폰으로 터미널의 QR 코드 스캔 → 앱 즉시 실행. 코드 수정 시 실시간 핫 리로드가 이루어집니다.</p>
+        </div>
+
+        <h2 id="prepare">사전 준비</h2>
+        <h3>1. 폰에 Expo Go 설치</h3>
+        <p>Google Play Store에서 "Expo Go"를 검색하여 설치합니다.</p>
+        <p><a href="https://play.google.com/store/apps/details?id=host.exp.exponent" class="doc-link" target="_blank">Google Play Store 다운로드 링크</a></p>
+
+        <h3>2. PC와 폰을 같은 Wi-Fi에 연결</h3>
+        <div class="alert warning">
+          <h4>⚠️ 가장 흔한 실패 원인</h4>
+          <p>PC와 모바일 기기가 서로 동일한 로컬 네트워크(LAN) 상에 존재해야 합니다. 예를 들어, PC는 유선 LAN에 물려 있고 폰은 LTE/5G 모바일 데이터 상태인 경우 접속할 수 없습니다.</p>
+        </div>
+        <p>같은 네트워크인지 확인하려면:</p>
+        <ul>
+          <li>PC: <code>ipconfig</code> 실행 후 IPv4 주소 확인 (예: 192.168.0.10)</li>
+          <li>폰: 설정 → Wi-Fi → 연결 정보에서 IP 주소 확인 (예: 192.168.0.15)</li>
+        </ul>
+        <p>보통 앞 세 자리(<code>192.168.0.</code>)가 일치하면 같은 LAN 환경입니다.</p>
+
+        <h3>3. 작업 위치 및 셋업</h3>
+        <pre><code>cd C:\dev\mobileAuto\mobile-app</code></pre>
+        <p>프로젝트 내의 환경 설정(<code>.env</code>) 파일 확인:</p>
+        <pre><code>EXPO_PUBLIC_API_BASE=http://43.202.113.123:8086</code></pre>
+
+        <h3>4. 의존성 설치</h3>
+        <pre><code>npm install</code></pre>
+
+        <h2 id="run">개발 서버 실행</h2>
+        <h3>기본 명령</h3>
+        <pre><code>npx expo start</code></pre>
+        <p><strong>수행 동작:</strong></p>
+        <ul>
+          <li>Metro 번들러가 시작됩니다 (기본 포트 8081).</li>
+          <li>터미널에 대형 QR 코드와 LAN 접속 URL(<code>exp://192.168.x.x:8081</code>)이 표시됩니다.</li>
+        </ul>
+
+        <h3>폰에서 접속</h3>
+        <ol>
+          <li>폰에서 <strong>Expo Go</strong> 앱을 켭니다.</li>
+          <li>"Scan QR code"를 탭합니다.</li>
+          <li>PC 터미널에 표시된 QR 코드를 카메라로 스캔합니다.</li>
+          <li>JavaScript 번들 다운로드가 100% 완료되면 앱이 실행됩니다.</li>
+        </ol>
+
+        <h3>네트워크 접속 불가능 시 (Tunnel 모드)</h3>
+        <p>공용 와이파이 환경 등에서 기기 간 통신이 차단될 때는 <code>--tunnel</code> 옵션을 붙여 외부 터널을 뚫을 수 있습니다:</p>
+        <pre><code>npx expo start --tunnel</code></pre>
+
+        <h2 id="workflow">코드 수정 워크플로</h2>
+        <h3>자동 Hot Reload</h3>
+        <p>코드를 수정하고 저장(Ctrl+S)하면, 앱의 현재 화면 및 입력 상태를 보존한 채로 1~2초 내에 변경 사항이 즉시 모바일에 반영됩니다.</p>
+
+        <h3>수동 갱신 (Reload)</h3>
+        <p>코드가 제대로 갱신되지 않았거나 화면이 이상할 경우:</p>
+        <ul>
+          <li>폰을 가볍게 흔들고 dev menu에서 **"Reload"** 선택</li>
+          <li>또는 PC 터미널에서 **`r`** 키 입력</li>
+        </ul>
+
+        <h2 id="troubleshooting">자주 만나는 문제</h2>
+        <h3>1. QR 코드 스캔 후 "Could not connect" 에러</h3>
+        <p>PC와 폰이 서로 다른 와이파이에 연결되었는지, 혹은 Windows 방화벽이 Node.js 포트(8081)를 차단하고 있지 않은지 확인해 주세요. 해결이 어려울 경우 <code>npx expo start --tunnel</code>을 통해 터널 연결을 우회적으로 사용하시면 됩니다.</p>
+
+        <h3>2. <code>.env</code> 설정값 변경이 반영되지 않음</h3>
+        <p><code>.env</code> 환경변수는 개발 서버 구동 시점에 로드되므로, 반드시 Metro 번들러를 끄고 캐시를 비워 재실행해야 합니다:</p>
+        <pre><code>npx expo start --clear</code></pre>
+
+        <h2 id="limitations">Expo Go의 한계</h2>
+        <p>네이티브 Manifest 수정(예: Cleartext Traffic HTTP 허용 설정)이나 커스텀 네이티브 모듈 설치가 동반되는 개발 작업의 경우, Expo Go에서는 확인이 불가하므로 반드시 <strong>EAS를 통한 실제 APK 빌드</strong> 후 실기기에서 검증해 주셔야 합니다.</p>
+
+        <h2 id="shortcuts">키보드 단축키 (Metro 콘솔)</h2>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>단축키</th>
+                <th>설명</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>r</code></td>
+                <td>기기 앱 새로고침 (Reload)</td>
+              </tr>
+              <tr>
+                <td><code>m</code></td>
+                <td>모바일 기기의 개발자 메뉴(Dev Menu) 토글</td>
+              </tr>
+              <tr>
+                <td><code>j</code></td>
+                <td>브라우저 디버거(JS Debugger) 실행</td>
+              </tr>
+              <tr>
+                <td><code>Ctrl+C</code></td>
+                <td>Metro 번들러 개발 서버 종료</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="git-pull">새로운 코드를 받았을 때</h2>
+        <pre><code>git pull origin main
+npm install
+npx expo start --clear</code></pre>
+      </article>
+    </main>
+  </div>
+
+</body>
+</html>

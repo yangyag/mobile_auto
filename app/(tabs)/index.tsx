@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { ScrollView, View, Text, StyleSheet, RefreshControl, Pressable } from 'react-native';
 import { useManualQuery, combineLastUpdated } from '../../src/hooks/useManualQuery';
-import { getBotStatus, getMarketPrice, getGridSummary, getPnlRealized, getPendingOrders } from '../../src/api/endpoints';
+import { getBotStatus, getMarketPrice, getGridSummary, getPnlRealized, getPendingOrders, getOpenSells } from '../../src/api/endpoints';
 import { StatCard } from '../../src/components/StatCard';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
 import { QueryBar } from '../../src/components/QueryBar';
@@ -16,21 +16,26 @@ export default function Dashboard() {
   const summary = useManualQuery(getGridSummary);
   const pending = useManualQuery(getPendingOrders);
   const todayPnl = useManualQuery(useCallback(() => getPnlRealized('d'), []));
+  const openSells = useManualQuery(getOpenSells);
 
-  const anyError = status.error ?? price.error ?? summary.error ?? pending.error ?? todayPnl.error;
-  const loading = status.loading || price.loading || summary.loading || pending.loading || todayPnl.loading;
+  const anyError = status.error ?? price.error ?? summary.error ?? pending.error ?? todayPnl.error ?? openSells.error;
+  const loading = status.loading || price.loading || summary.loading || pending.loading || todayPnl.loading || openSells.loading;
   const lastUpdatedAt = combineLastUpdated([
     status.lastUpdatedAt, price.lastUpdatedAt, summary.lastUpdatedAt,
-    pending.lastUpdatedAt, todayPnl.lastUpdatedAt,
+    pending.lastUpdatedAt, todayPnl.lastUpdatedAt, openSells.lastUpdatedAt,
   ]);
 
   const refreshAll = useCallback(() => {
-    status.refresh(); price.refresh(); summary.refresh(); pending.refresh(); todayPnl.refresh();
-  }, [status, price, summary, pending, todayPnl]);
+    status.refresh(); price.refresh(); summary.refresh(); pending.refresh(); todayPnl.refresh(); openSells.refresh();
+  }, [status, price, summary, pending, todayPnl, openSells]);
 
   const todayBucket = todayPnl.data?.buckets?.[0];
   const todayNet = todayBucket?.realized_pnl_krw;
   const todayNetNum = todayNet != null ? Number(todayNet) : null;
+
+  const openSellsCount = openSells.data?.summary?.total_count ?? 0;
+  const openSellsPnl = openSells.data?.summary?.total_unrealized_krw;
+  const openSellsPnlNum = openSellsPnl != null ? Number(openSellsPnl) : null;
 
   return (
     <ScrollView
@@ -63,7 +68,7 @@ export default function Dashboard() {
               ? `${summary.data.holding_count}/${summary.data.row_count} 슬롯 · 평단 ${formatKrw(summary.data.avg_buy_price)}`
               : undefined
           }
-          loading={summary.loading && !summary.data}
+          loading={summary.loading}
         />
         <StatCard
           label="오늘 손익"
@@ -73,12 +78,27 @@ export default function Dashboard() {
             : todayNetNum > 0 ? 'positive'
             : todayNetNum < 0 ? 'negative' : 'default'
           }
-          loading={todayPnl.loading && !todayPnl.data}
+          loading={todayPnl.loading}
         />
         <StatCard
           label="미체결"
           value={pending.data ? `${pending.data.length}건` : '—'}
-          loading={pending.loading && !pending.data}
+          loading={pending.loading}
+        />
+        <StatCard
+          label="매도 대기"
+          value={openSellsPnl != null ? formatSigned(openSellsPnl) : '—'}
+          subtitle={
+            openSells.data
+              ? `${openSellsCount}건`
+              : undefined
+          }
+          tone={
+            openSellsPnlNum == null ? 'default'
+            : openSellsPnlNum > 0 ? 'positive'
+            : openSellsPnlNum < 0 ? 'negative' : 'default'
+          }
+          loading={openSells.loading}
         />
 
         <Pressable onPress={logout} style={styles.logoutBtn}>

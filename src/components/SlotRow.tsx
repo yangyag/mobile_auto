@@ -12,14 +12,19 @@ interface Props {
 export function SlotRow({ slot, onPress }: Props) {
   const isHeld = Number(slot.held_qty) > 0;
   return (
-    <Pressable onPress={() => onPress?.(slot)} style={styles.row}>
+    <Pressable
+      onPress={() => onPress?.(slot)}
+      style={[styles.row, isHeld && styles.rowHeld]}
+    >
       <View style={styles.col}>
         <Text style={styles.label}>매수</Text>
         <Text style={styles.value}>{formatKrw(slot.buy_price)}</Text>
       </View>
       <View style={styles.col}>
-        <Text style={styles.label}>{isHeld ? '보유' : '계획'}</Text>
-        <Text style={styles.value}>{formatBtc(isHeld ? slot.held_qty : slot.planned_qty)}</Text>
+        <Text style={[styles.label, isHeld && styles.labelHeld]}>{isHeld ? '보유' : '계획'}</Text>
+        <Text style={[styles.value, isHeld && styles.valueHeld]}>
+          {formatBtc(isHeld ? slot.held_qty : slot.planned_qty)}
+        </Text>
       </View>
       <View style={styles.col}>
         <Text style={styles.label}>매도</Text>
@@ -39,9 +44,14 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     alignItems: 'center',
   },
+  rowHeld: {
+    backgroundColor: '#112217',
+  },
   col: { flex: 1 },
   label: { color: colors.textDim, fontSize: 9, textTransform: 'uppercase' },
+  labelHeld: { color: colors.positive, opacity: 0.8 },
   value: { color: colors.text, fontSize: 13, fontWeight: '500', marginTop: 2 },
+  valueHeld: { color: colors.positive, fontWeight: '600' },
   badge: {
     width: 6, height: 6, borderRadius: 3, backgroundColor: colors.accent, marginLeft: 4,
   },

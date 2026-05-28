@@ -21,9 +21,9 @@ export function formatBtc(value: Numeric): string {
 export function formatSigned(value: Numeric): string {
   const n = toFiniteNumber(value);
   if (n == null) return '';
-  if (n === 0) return '0';
+  if (n === 0) return '0원';
   const formatted = Math.abs(Math.trunc(n)).toLocaleString('en-US');
-  return n > 0 ? `+${formatted}` : `-${formatted}`;
+  return n > 0 ? `+${formatted}원` : `-${formatted}원`;
 }
 
 export function formatRelativeTime(

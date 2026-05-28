@@ -117,6 +117,41 @@ export interface PnlRealized {
   buckets: PnlBucket[];
 }
 
+export interface OpenSellRow {
+  slot_index: number | null;
+  qty: string | number;
+  buy_unit_cost: string | number | null;
+  sell_limit_price: string | number;
+  current_price: string | number;
+  unrealized_at_current: string | number | null;
+  gap_to_fill_krw: string | number;
+}
+
+export interface OpenSellSummary {
+  total_count: number;
+  matched_count: number;
+  unmatched_count: number;
+  profit_count: number;
+  loss_count: number;
+  total_unrealized_krw: string | number;
+}
+
+export interface OpenSellDiagnostic {
+  open_orders: number;
+  matched: number;
+  unmatched: number;
+  lookback_days: number;
+}
+
+export interface OpenSellMonitorResponse {
+  market: string;
+  current_price: string | number;
+  generated_at: string;
+  rows: OpenSellRow[];
+  summary: OpenSellSummary;
+  diagnostic: OpenSellDiagnostic;
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;

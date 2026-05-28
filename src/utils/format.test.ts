@@ -25,13 +25,13 @@ describe('formatBtc', () => {
 
 describe('formatSigned', () => {
   it('양수는 + 부호', () => {
-    expect(formatSigned(12400)).toBe('+12,400');
+    expect(formatSigned(12400)).toBe('+12,400원');
   });
   it('음수는 - 부호 유지', () => {
-    expect(formatSigned(-12400)).toBe('-12,400');
+    expect(formatSigned(-12400)).toBe('-12,400원');
   });
   it('0은 부호 없음', () => {
-    expect(formatSigned(0)).toBe('0');
+    expect(formatSigned(0)).toBe('0원');
   });
 });
 
@@ -64,16 +64,16 @@ describe('formatBtc - string inputs', () => {
 
 describe('formatSigned - string inputs', () => {
   it('양수 문자열', () => {
-    expect(formatSigned('12400.5')).toBe('+12,400');
+    expect(formatSigned('12400.5')).toBe('+12,400원');
   });
   it('음수 문자열', () => {
-    expect(formatSigned('-12400.5')).toBe('-12,400');
+    expect(formatSigned('-12400.5')).toBe('-12,400원');
   });
   it('0 문자열', () => {
-    expect(formatSigned('0')).toBe('0');
+    expect(formatSigned('0')).toBe('0원');
   });
   it('과학적 표기 0', () => {
-    expect(formatSigned('0E-24')).toBe('0');
+    expect(formatSigned('0E-24')).toBe('0원');
   });
 });
 

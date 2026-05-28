@@ -12,13 +12,14 @@ interface Props {
 
 export function StatCard({ label, value, subtitle, tone = 'default', loading }: Props) {
   const valueColor =
-    tone === 'positive' ? colors.positive
+    loading ? colors.accent
+    : tone === 'positive' ? colors.positive
     : tone === 'negative' ? colors.negative
     : colors.text;
   return (
     <View style={styles.card}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, { color: valueColor }]}>{loading ? '—' : value}</Text>
+      <Text style={[styles.value, { color: valueColor }]}>{loading ? '조회중...' : value}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>
   );

@@ -46,30 +46,41 @@ export default function PnlScreen() {
       {pnl.error ? <ErrorBanner message={pnl.error.message} onRetry={pnl.refresh} /> : null}
 
       <View style={styles.body}>
-        {pnl.data ? (
-          bucket ? (
+        {pnl.loading || pnl.data ? (
+          bucket || pnl.loading ? (
             <>
-              <Text style={styles.range}>{bucket.key}</Text>
+              {bucket?.key && !pnl.loading ? <Text style={styles.range}>{bucket.key}</Text> : null}
               <StatCard
                 label="순손익"
-                value={formatSigned(bucket.realized_pnl_krw)}
+                value={bucket ? formatSigned(bucket.realized_pnl_krw) : '—'}
                 tone={
                   realizedNum == null ? 'default'
                   : realizedNum > 0 ? 'positive'
                   : realizedNum < 0 ? 'negative' : 'default'
                 }
+                loading={pnl.loading}
               />
-              <StatCard label="매수/매도 BTC" value={formatBtc(bucket.matched_qty_btc)} />
-              <StatCard label="주문 수" value={String(bucket.order_count)} />
-              <StatCard label="체결 건수" value={String(bucket.trade_count)} />
+              <StatCard
+                label="매수/매도 BTC"
+                value={bucket ? formatBtc(bucket.matched_qty_btc) : '—'}
+                loading={pnl.loading}
+              />
+              <StatCard
+                label="주문 수"
+                value={bucket ? String(bucket.order_count) : '—'}
+                loading={pnl.loading}
+              />
+              <StatCard
+                label="체결 건수"
+                value={bucket ? String(bucket.trade_count) : '—'}
+                loading={pnl.loading}
+              />
             </>
           ) : (
             <Text style={styles.loading}>해당 기간 손익 없음</Text>
           )
         ) : (
-          <Text style={styles.loading}>
-            {pnl.loading ? '조회 중...' : '조회 버튼을 눌러주세요'}
-          </Text>
+          <Text style={styles.loading}>조회 버튼을 눌러주세요</Text>
         )}
       </View>
     </ScrollView>
