@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, RefreshControl, Modal, Pressable, ScrollView,
+  View, Text, FlatList, StyleSheet, RefreshControl, Modal, Pressable, ScrollView, useWindowDimensions,
 } from 'react-native';
 import { useManualQuery } from '../../src/hooks/useManualQuery';
 import { getGridState } from '../../src/api/endpoints';
@@ -13,6 +13,7 @@ import { formatKrw, formatBtc } from '../../src/utils/format';
 
 export default function GridScreen() {
   const grid = useManualQuery(getGridState);
+  const { height: windowHeight } = useWindowDimensions();
   const [selected, setSelected] = useState<GridSlot | null>(null);
 
   const sorted = (grid.data?.slots ?? []).slice().sort((a, b) => Number(b.buy_price) - Number(a.buy_price));
@@ -40,9 +41,10 @@ export default function GridScreen() {
       />
 
       <Modal visible={!!selected} animationType="slide" transparent onRequestClose={onClose}>
-        <Pressable style={styles.modalBackdrop} onPress={onClose}>
-          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
-            <ScrollView>
+        <View style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+          <View style={styles.modalCard}>
+            <ScrollView style={{ maxHeight: windowHeight * 0.7 }} nestedScrollEnabled>
               {selected ? (
                 <>
                   <Text style={styles.modalTitle}>슬롯 #{selected.slot_index}</Text>
@@ -70,8 +72,8 @@ export default function GridScreen() {
             <Pressable style={styles.closeBtn} onPress={onClose}>
               <Text style={styles.closeBtnText}>닫기</Text>
             </Pressable>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -92,7 +94,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: colors.text, fontSize: 13, fontWeight: '500' },
   empty: { color: colors.textDim, textAlign: 'center', marginTop: 40 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 20 },
-  modalCard: { backgroundColor: colors.surface, borderRadius: 12, padding: 16, maxHeight: '80%' },
+  modalCard: { backgroundColor: colors.surface, borderRadius: 12, padding: 16 },
   modalTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 12 },
   modalSection: { color: colors.textMuted, fontSize: 11, textTransform: 'uppercase', marginTop: 12, marginBottom: 4 },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },

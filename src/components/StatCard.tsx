@@ -1,5 +1,4 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { colors } from '../theme/colors';
 
 interface Props {
@@ -8,14 +7,32 @@ interface Props {
   subtitle?: string;
   tone?: 'default' | 'positive' | 'negative';
   loading?: boolean;
+  onPress?: () => void;
 }
 
-export function StatCard({ label, value, subtitle, tone = 'default', loading }: Props) {
+export function StatCard({ label, value, subtitle, tone = 'default', loading, onPress }: Props) {
   const valueColor =
     loading ? colors.accent
     : tone === 'positive' ? colors.positive
     : tone === 'negative' ? colors.negative
     : colors.text;
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.card,
+          pressed && { opacity: 0.7 }
+        ]}
+      >
+        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.value, { color: valueColor }]}>{loading ? '조회중...' : value}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </Pressable>
+    );
+  }
+
   return (
     <View style={styles.card}>
       <Text style={styles.label}>{label}</Text>
