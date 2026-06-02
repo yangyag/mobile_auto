@@ -2,7 +2,7 @@ import { apiGetJson } from './client';
 import {
   BotStatus, MarketPrice, GridSummary, GridState,
   PendingOrder, RecentOrder, PnlRealized, OrdersResponse,
-  OpenSellMonitorResponse,
+  OpenSellMonitorResponse, PnlBySlot,
 } from './types';
 
 export function getBotStatus(): Promise<BotStatus> {
@@ -35,6 +35,10 @@ export type PnlPeriod = 'd' | 'w' | 'm' | 'y' | 'all';
 
 export function getPnlRealized(period: PnlPeriod): Promise<PnlRealized> {
   return apiGetJson<PnlRealized>(`/v1/pnl/realized?period=${period}`);
+}
+
+export function getPnlBySlot(period: PnlPeriod, detail = false): Promise<PnlBySlot> {
+  return apiGetJson<PnlBySlot>(`/v1/pnl/by-slot?period=${period}&detail=${detail}`);
 }
 
 export function getOpenSells(): Promise<OpenSellMonitorResponse> {

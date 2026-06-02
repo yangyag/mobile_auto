@@ -152,6 +152,31 @@ export interface OpenSellMonitorResponse {
   diagnostic: OpenSellDiagnostic;
 }
 
+export interface PnlBySlotSlot {
+  slot: number;
+  grid_buy_price: string | number | null;
+  order_count: number;
+  realized_pnl_krw: string | number;
+  matched_qty: string | number;
+}
+
+export interface PnlBySlotSell {
+  time: string;
+  slot: number;
+  matched_qty: string | number;
+  realized_pnl_krw: string | number;
+  sell_uuid: string;
+}
+
+export interface PnlBySlot {
+  period: 'd' | 'w' | 'm' | 'y' | 'all';
+  market: string;
+  base_currency: string;
+  total_realized_pnl_krw: string | number;
+  slots: PnlBySlotSlot[];
+  sells: PnlBySlotSell[];
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;

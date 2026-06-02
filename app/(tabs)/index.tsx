@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ScrollView, View, Text, StyleSheet, RefreshControl, Pressable, Modal, useWindowDimensions } from 'react-native';
 import { useManualQuery, combineLastUpdated } from '../../src/hooks/useManualQuery';
-import { getBotStatus, getMarketPrice, getGridSummary, getPnlRealized, getPendingOrders, getOpenSells } from '../../src/api/endpoints';
+import { getBotStatus, getMarketPrice, getGridSummary, getPnlRealized, getPendingOrders, getOpenSells, getPnlBySlot } from '../../src/api/endpoints';
 import { StatCard } from '../../src/components/StatCard';
 import { ErrorBanner } from '../../src/components/ErrorBanner';
 import { QueryBar } from '../../src/components/QueryBar';
@@ -13,23 +13,25 @@ export default function Dashboard() {
   const { logout } = useAuth();
   const { height: windowHeight } = useWindowDimensions();
   const [detailsVisible, setDetailsVisible] = useState(false);
+  const [bySlotVisible, setBySlotVisible] = useState(false);
   const status = useManualQuery(getBotStatus);
   const price = useManualQuery(getMarketPrice);
   const summary = useManualQuery(getGridSummary);
   const pending = useManualQuery(getPendingOrders);
   const todayPnl = useManualQuery(useCallback(() => getPnlRealized('d'), []));
+  const bySlot = useManualQuery(useCallback(() => getPnlBySlot('d'), []));
   const openSells = useManualQuery(getOpenSells);
 
-  const anyError = status.error ?? price.error ?? summary.error ?? pending.error ?? todayPnl.error ?? openSells.error;
-  const loading = status.loading || price.loading || summary.loading || pending.loading || todayPnl.loading || openSells.loading;
+  const anyError = status.error ?? price.error ?? summary.error ?? pending.error ?? todayPnl.error ?? bySlot.error ?? openSells.error;
+  const loading = status.loading || price.loading || summary.loading || pending.loading || todayPnl.loading || bySlot.loading || openSells.loading;
   const lastUpdatedAt = combineLastUpdated([
     status.lastUpdatedAt, price.lastUpdatedAt, summary.lastUpdatedAt,
-    pending.lastUpdatedAt, todayPnl.lastUpdatedAt, openSells.lastUpdatedAt,
+    pending.lastUpdatedAt, todayPnl.lastUpdatedAt, bySlot.lastUpdatedAt, openSells.lastUpdatedAt,
   ]);
 
   const refreshAll = useCallback(() => {
-    status.refresh(); price.refresh(); summary.refresh(); pending.refresh(); todayPnl.refresh(); openSells.refresh();
-  }, [status, price, summary, pending, todayPnl, openSells]);
+    status.refresh(); price.refresh(); summary.refresh(); pending.refresh(); todayPnl.refresh(); bySlot.refresh(); openSells.refresh();
+  }, [status, price, summary, pending, todayPnl, bySlot, openSells]);
 
   const todayBucket = todayPnl.data?.buckets?.[0];
   const todayNet = todayBucket?.realized_pnl_krw;
@@ -43,6 +45,7 @@ export default function Dashboard() {
   const baseCurrency = getBaseCurrency(symbol);
 
   const openSellRows = (openSells.data?.rows ?? []).slice().sort((a, b) => (a.slot_index ?? Infinity) - (b.slot_index ?? Infinity));
+  const bySlotRows = (bySlot.data?.slots ?? []).slice().sort((a, b) => a.slot - b.slot);
 
   return (
     <>
@@ -87,6 +90,7 @@ export default function Dashboard() {
               : todayNetNum < 0 ? 'negative' : 'default'
             }
             loading={todayPnl.loading}
+            onPress={() => setBySlotVisible(true)}
           />
           <StatCard
             label="미체결"
@@ -222,6 +226,85 @@ export default function Dashboard() {
             </ScrollView>
 
             <Pressable style={styles.closeBtn} onPress={() => setDetailsVisible(false)}>
+              <Text style={styles.closeBtnText}>닫기</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={bySlotVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setBySlotVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setBySlotVisible(false)} />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>오늘 손익 — 슬롯별</Text>
+
+            {bySlot.data ? (
+              <View style={styles.summaryContainer}>
+                <View style={styles.summaryRow}>
+                  <View style={styles.summaryCol}>
+                    <Text style={styles.summaryLabel}>합계 실현손익</Text>
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        { color: Number(bySlot.data.total_realized_pnl_krw) >= 0 ? colors.positive : colors.negative },
+                      ]}
+                    >
+                      {formatSigned(bySlot.data.total_realized_pnl_krw)}
+                    </Text>
+                  </View>
+                  <View style={styles.summaryCol}>
+                    <Text style={styles.summaryLabel}>매도 슬롯</Text>
+                    <Text style={styles.summaryValue}>{bySlot.data.slots.length}개</Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
+            <ScrollView nestedScrollEnabled style={[styles.modalScroll, { maxHeight: windowHeight * 0.6 }]}>
+              {bySlotRows.length > 0 ? (
+                bySlotRows.map((row, index) => {
+                  const pnlNum = Number(row.realized_pnl_krw);
+                  const pnlColor = pnlNum >= 0 ? colors.positive : colors.negative;
+                  return (
+                    <View key={row.slot ?? index} style={styles.detailCard}>
+                      <View style={styles.detailCardHeader}>
+                        <Text style={styles.detailCardSlot}>슬롯 #{row.slot}</Text>
+                        <Text style={[styles.detailCardPnl, { color: pnlColor }]}>
+                          {formatSigned(row.realized_pnl_krw)}
+                        </Text>
+                      </View>
+                      <View style={styles.detailCardGrid}>
+                        <View style={styles.detailCardCol}>
+                          <Text style={styles.detailLabel}>참고가</Text>
+                          <Text style={styles.detailValue}>
+                            {row.grid_buy_price != null ? formatKrw(row.grid_buy_price) : '—'}
+                          </Text>
+                        </View>
+                        <View style={styles.detailCardCol}>
+                          <Text style={styles.detailLabel}>주문 수</Text>
+                          <Text style={styles.detailValue}>{row.order_count}건</Text>
+                        </View>
+                      </View>
+                      <View style={styles.detailCardGrid}>
+                        <View style={styles.detailCardCol}>
+                          <Text style={styles.detailLabel}>매칭 수량 ({baseCurrency})</Text>
+                          <Text style={styles.detailValue}>{formatBtc(row.matched_qty, symbol)}</Text>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })
+              ) : (
+                <Text style={styles.noDataText}>오늘 매도 체결이 없습니다.</Text>
+              )}
+            </ScrollView>
+
+            <Pressable style={styles.closeBtn} onPress={() => setBySlotVisible(false)}>
               <Text style={styles.closeBtnText}>닫기</Text>
             </Pressable>
           </View>
